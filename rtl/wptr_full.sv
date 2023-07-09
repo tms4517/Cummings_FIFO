@@ -11,10 +11,10 @@ module wptr_full
   , input  var logic              i_rst
 
   , input  var logic              i_inc
-  , input  var logic [ADDR_W:0]   i_readPtr
+  , input  var logic [ADDR_W:0]   i_rPtr
 
-  , output var logic [ADDR_W:0]   o_writePtr
-  , output var logic [ADDR_W-1:0] o_writeAddr
+  , output var logic [ADDR_W:0]   o_wPtr
+  , output var logic [ADDR_W-1:0] o_wAddr
   , output var logic              o_full
   );
 
@@ -28,10 +28,10 @@ module wptr_full
       else
         counter_q <= counter_d;
 
-    always_comb counter_d = counter_q + (i_inc && !o_full);
+    always_comb counter_d = counter_q + {4'b0, (i_inc && !o_full)};
 
     // Memory write-address pointer.
-    always_comb o_writeAddr = counter_q[ADDR_W-1:0];
+    always_comb o_wAddr = counter_q[ADDR_W-1:0];
 
   // }}} Binary counter.
 
@@ -49,7 +49,7 @@ module wptr_full
     always_comb grayCounter_d = (counter_d>>1) ^ counter_d;
 
     // Write-pointer that will be passed to read clock domain.
-    always_comb o_writePtr = grayCounter_d;
+    always_comb o_wPtr = grayCounter_d;
 
   // {{{ Gray counter.
 
@@ -65,8 +65,8 @@ module wptr_full
 
   // Full occurs when the two MSBs of the wptr and rptr are not equal but the
   // rest of the bits are equal.
-  always_comb full_d = (o_writePtr == {~i_readPtr[ADDR_W:ADDR_W-1],
-                                       i_readPtr[ADDR_W-2:0]});
+  always_comb full_d = (o_wPtr == {~i_rPtr[ADDR_W:ADDR_W-1],
+                                       i_rPtr[ADDR_W-2:0]});
 
   always_comb o_full = full_q;
 

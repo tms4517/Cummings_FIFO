@@ -7,31 +7,31 @@
 
 module rptr_empty
   #(parameter int ADDR_W = 4)
-  ( input  var logic            i_clk
-  , input  var logic            i_rst
+  ( input  var logic              i_clk
+  , input  var logic              i_arst
 
-  , input  var logic            i_inc
-  , input  var logic [ADDR_W:0] i_writePtr
+  , input  var logic              i_inc
+  , input  var logic [ADDR_W:0]   i_wPtr
 
-  , output var logic [ADDR_W:0] o_readPtr
-  , output var logic [ADDR_W:0] o_readAddr
-  , output var logic            o_empty
+  , output var logic [ADDR_W:0]   o_rPtr
+  , output var logic [ADDR_W-1:0] o_rAddr
+  , output var logic              o_empty
   );
 
   // {{{ Binary counter.
 
     logic [ADDR_W:0] counter_d, counter_q;
 
-    always_ff @(posedge i_clk, posedge i_rst)
-      if (i_rst)
+    always_ff @(posedge i_clk, posedge i_arst)
+      if (i_arst)
         counter_q <= '0;
       else
         counter_q <= counter_d;
 
-    always_comb counter_d = counter_q + (i_inc && !o_empty);
+    always_comb counter_d = counter_q + {4'b0, (i_inc && !o_empty)};
 
     // Memory read-address pointer.
-    always_comb o_readAddr = counter_q[ADDR_W-1:0];
+    always_comb o_rAddr = counter_q[ADDR_W-1:0];
 
   // }}} Binary counter.
 
@@ -39,8 +39,8 @@ module rptr_empty
 
     logic [ADDR_W:0] grayCounter_d, grayCounter_q;
 
-    always_ff @(posedge i_clk, posedge i_rst)
-      if (i_rst)
+    always_ff @(posedge i_clk, posedge i_arst)
+      if (i_arst)
         grayCounter_q <= '0;
       else
         grayCounter_q <= grayCounter_d;
@@ -49,7 +49,7 @@ module rptr_empty
     always_comb grayCounter_d = (counter_d>>1) ^ counter_d;
 
     // Read-pointer that will be passed to write clock domain.
-    always_comb o_readPtr = grayCounter_d;
+    always_comb o_rPtr = grayCounter_d;
 
   // {{{ Gray counter.
 
@@ -57,14 +57,14 @@ module rptr_empty
 
   logic empty_d, empty_q;
 
-  always_ff @(posedge i_clk, posedge i_rst)
-    if (i_rst)
+  always_ff @(posedge i_clk, posedge i_arst)
+    if (i_arst)
       empty_q <= '0;
     else
       empty_q <= empty_d;
 
   // Empty occurs when the read pointer catches up to the syncd write pointer.
-  always_comb empty_d = (o_readPtr == i_writePtr);
+  always_comb empty_d = (o_rPtr == i_wPtr);
 
   always_comb o_empty = empty_q;
 
